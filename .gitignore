@@ -1,0 +1,14 @@
+.idea/
+.junie/
+.venv/
+__pycache__/
+.DS_Store
+/inv*.json
+tmp/
+logs*/
+data/*
+!data/rwth_color_scheme.tex
+!data/storm-table-check.tex
+/bin
+experiments-*/
+experiments/

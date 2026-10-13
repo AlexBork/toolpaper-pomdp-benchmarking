@@ -1,0 +1,339 @@
+% CSV-backed aggregate plots. Load in the preamble, then load a data directory.
+\RequirePackage{pgfplots}
+\RequirePackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
+\definecolor{stormaggblue}{RGB}{0,114,178}
+\definecolor{stormaggorange}{RGB}{213,94,0}
+\definecolor{stormagggreen}{RGB}{0,135,100}
+\pgfplotsset{storm aggregate axis/.style={
+  /pgfplots/.cd,width=8.1cm,height=6.4cm,
+  axis lines=left,tick align=outside,
+  grid=major,major grid style={black!12},
+  label style={font=\small},tick label style={font=\footnotesize},
+  title style={font=\small},legend cell align=left,
+  legend style={font=\scriptsize,draw=none,fill=white,fill opacity=.9,text opacity=1},
+  every axis plot/.append style={line width=.9pt},
+  unbounded coords=jump,filter discard warning=false,
+}}
+\makeatletter
+\newcount\stormagg@dataset
+\newif\ifstormagg@loaded
+\newcommand{\stormagg@get}[4]{%
+  \pgfplotstablegetelem{#2}{#3}\of#1\let#4\pgfplotsretval
+}
+\newcommand{\stormagg@normalise}[1]{%
+  \edef#1{\expandafter\detokenize\expandafter{#1}}%
+}
+\newcommand{\StormPOMDPLoadAggregateData}[1]{%
+  \advance\stormagg@dataset by 1\relax
+  \pgfplotstableread[col sep=comma]{#1/coverage-plot-data.csv}\stormagg@coverage
+  \pgfplotstableread[col sep=comma]{#1/gap-plot-data.csv}\stormagg@gaps
+  \stormagg@get\stormagg@gaps{0}{total_instances}\stormagg@total
+  \stormagg@get\stormagg@gaps{0}{total_thresholds}\stormagg@columns
+  \stormagg@get\stormagg@gaps{0}{reaches_million}\stormagg@million
+  \stormagg@get\stormagg@gaps{0}{reaches_ten_million}\stormagg@tenmillion
+  \def\stormagg@defaultcoverage{}\def\stormagg@separator{}%
+  % Cache row identifiers once so filtering never needs a linear table lookup.
+  \pgfplotstableforeachcolumnelement{threshold}\of\stormagg@coverage
+    \as\stormagg@candidate{%
+      \stormagg@normalise\stormagg@candidate
+      \expandafter\let\csname stormagg@coverageid@\the\stormagg@dataset
+        @\pgfplotstablerow\endcsname\stormagg@candidate
+      \ifcsname stormagg@coveragerow@\the\stormagg@dataset @\stormagg@candidate\endcsname\else
+        \expandafter\edef\csname stormagg@coveragerow@\the\stormagg@dataset
+          @\stormagg@candidate\endcsname{\pgfplotstablerow}%
+        \edef\stormagg@defaultcoverage{\stormagg@defaultcoverage
+          \stormagg@separator\stormagg@candidate}\def\stormagg@separator{,}%
+      \fi
+    }%
+  \def\stormagg@representatives{0}%
+  \pgfplotstableforeachcolumnelement{instance}\of\stormagg@gaps
+    \as\stormagg@candidate{%
+      \stormagg@normalise\stormagg@candidate
+      \expandafter\let\csname stormagg@gapid@\the\stormagg@dataset
+        @\pgfplotstablerow\endcsname\stormagg@candidate
+      \ifcsname stormagg@gaprow@\the\stormagg@dataset @\stormagg@candidate\endcsname\else
+        \expandafter\edef\csname stormagg@gaprow@\the\stormagg@dataset
+          @\stormagg@candidate\endcsname{\pgfplotstablerow}%
+        \stormagg@get\stormagg@gaps{\pgfplotstablerow}{representative_index}\stormagg@repindex
+        \ifnum\stormagg@repindex>-1\relax
+          \expandafter\let\csname stormagg@representative@\the\stormagg@dataset
+            @\stormagg@repindex\endcsname\stormagg@candidate
+          \pgfmathtruncatemacro\stormagg@representatives{\stormagg@representatives+1}%
+        \fi
+        \stormagg@get\stormagg@gaps{\pgfplotstablerow}{instance_index}\stormagg@instanceindex
+        \stormagg@get\stormagg@gaps{\pgfplotstablerow}{instance_label}\stormagg@label
+        \expandafter\let\csname stormagg@label@\the\stormagg@dataset
+          @\stormagg@instanceindex\endcsname\stormagg@label
+      \fi
+    }%
+  \def\stormagg@defaulttradeoff{}\def\stormagg@separator{}%
+  \pgfmathtruncatemacro\stormagg@lastrep{\stormagg@representatives-1}%
+  \pgfplotsforeachungrouped \stormagg@index in {0,...,\stormagg@lastrep}{%
+    \edef\stormagg@defaulttradeoff{\stormagg@defaulttradeoff\stormagg@separator
+      \csname stormagg@representative@\the\stormagg@dataset @\stormagg@index\endcsname}%
+    \def\stormagg@separator{,}%
+  }%
+  \pgfmathtruncatemacro\stormagg@lastcolumn{\stormagg@columns-1}%
+  \pgfmathtruncatemacro\stormagg@lastinstance{\stormagg@total-1}%
+  \def\stormagg@xticks{}\def\stormagg@xticklabels{}\def\stormagg@separator{}%
+  \pgfplotsforeachungrouped \stormagg@index in {0,...,\stormagg@lastcolumn}{%
+    \stormagg@get\stormagg@gaps{\stormagg@index}{threshold_tick}\stormagg@istick
+    \ifnum\stormagg@istick=1\relax
+      \stormagg@get\stormagg@gaps{\stormagg@index}{threshold_label}\stormagg@label
+      \edef\stormagg@xticks{\stormagg@xticks\stormagg@separator\stormagg@index}%
+      \edef\stormagg@xticklabels{\unexpanded\expandafter{\stormagg@xticklabels}
+        \stormagg@separator{\unexpanded\expandafter{\stormagg@label}}}%
+      \def\stormagg@separator{,}%
+    \fi
+  }%
+  \def\stormagg@yticks{}\def\stormagg@yticklabels{}\def\stormagg@separator{}%
+  \pgfplotsforeachungrouped \stormagg@index in {0,...,\stormagg@lastinstance}{%
+    \expandafter\let\expandafter\stormagg@label
+      \csname stormagg@label@\the\stormagg@dataset @\stormagg@index\endcsname
+    \edef\stormagg@yticks{\stormagg@yticks\stormagg@separator\stormagg@index}%
+    \edef\stormagg@yticklabels{\unexpanded\expandafter{\stormagg@yticklabels}
+      \stormagg@separator{\unexpanded\expandafter{\stormagg@label}}}%
+    \def\stormagg@separator{,}%
+  }%
+  \stormagg@loadedtrue
+}
+\pgfplotsset{
+  storm aggregate select coverage/.style={x filter/.code={%
+    \expandafter\let\expandafter\stormagg@candidate
+      \csname stormagg@coverageid@\the\stormagg@dataset @\coordindex\endcsname
+    \ifx\stormagg@candidate\stormagg@wanted\else\def\pgfmathresult{nan}\fi
+  }},
+  storm aggregate select instance/.style={x filter/.code={%
+    \expandafter\let\expandafter\stormagg@candidate
+      \csname stormagg@gapid@\the\stormagg@dataset @\coordindex\endcsname
+    \ifx\stormagg@candidate\stormagg@wanted\else\def\pgfmathresult{nan}\fi
+  }},
+  storm aggregate annotations/.style={
+    point meta=explicit symbolic,
+    nodes near coords={\ifnum\pgfplotspointmeta>0\relax $10^{\pgfplotspointmeta}$\fi},
+    every node near coord/.append style={font=\scriptsize,inner sep=2pt},
+    every node near coord/.append code={%
+      \ifnum\pgfplotspointmeta=7\relax\pgfkeysalso{/tikz/anchor=north east}%
+      \else\pgfkeysalso{/tikz/anchor=south west}\fi
+    },
+  },
+  storm aggregate text annotations/.style={
+    point meta=explicit symbolic,
+    nodes near coords={%
+      \edef\stormagg@text{\pgfplotspointmeta}\stormagg@normalise\stormagg@text
+      \def\stormagg@none{none}\stormagg@normalise\stormagg@none
+      \ifx\stormagg@text\stormagg@none\else\pgfplotspointmeta\fi
+    },
+    every node near coord/.append style={font=\scriptsize,anchor=south east,
+      fill=white,fill opacity=.8,text opacity=1,inner sep=1.5pt},
+    every node near coord/.append code={%
+      \edef\stormagg@text{\pgfplotspointmeta}\stormagg@normalise\stormagg@text
+      \def\stormagg@none{none}\stormagg@normalise\stormagg@none
+      \ifx\stormagg@text\stormagg@none
+        \pgfkeysalso{/tikz/fill opacity=0,/tikz/text opacity=0}\fi
+    },
+  },
+}
+\newcommand{\stormagg@palette}{%
+  \pgfmathtruncatemacro\stormagg@colourindex{mod(\stormagg@seriesindex,3)}%
+  \ifcase\stormagg@colourindex
+    \def\stormagg@colour{stormaggblue}\def\stormagg@mark{o}%
+  \or\def\stormagg@colour{stormaggorange}\def\stormagg@mark{square}%
+  \or\def\stormagg@colour{stormagggreen}\def\stormagg@mark{triangle}%
+  \fi
+}
+\newcommand{\StormPOMDPCoveragePlot}[2][]{%
+  \begingroup
+  \begin{tikzpicture}\begin{axis}[
+    xmode=log,storm aggregate axis,title={(a) All \stormagg@total\ instances},
+    xmin=.1,xmax=100,xtick={.1,1,5,10,100},xticklabels={0.1,1,5,10,100},
+    ymin=0,ymax=\stormagg@total,ytick={0,5,10,15,\stormagg@total},
+    xlabel={Relative bound gap (\%)},ylabel={Instances with gap at most $x$},
+    legend style={at={(.98,.04)},anchor=south east},#1]
+    \def\stormagg@seriesindex{0}%
+    \edef\stormagg@loop{\noexpand\pgfplotsforeachungrouped\noexpand\stormagg@wanted in {#2}}%
+    \stormagg@loop{%
+      \stormagg@normalise\stormagg@wanted
+      \ifcsname stormagg@coveragerow@\the\stormagg@dataset @\stormagg@wanted\endcsname
+        \edef\stormagg@row{\csname stormagg@coveragerow@\the\stormagg@dataset @\stormagg@wanted\endcsname}%
+        \stormagg@get\stormagg@coverage{\stormagg@row}{threshold_exponent}\stormagg@exponent
+        \stormagg@get\stormagg@coverage{\stormagg@row}{median_cutoff_seconds}\stormagg@median
+        \stormagg@palette
+        \edef\stormagg@command{\noexpand\addplot[color=\stormagg@colour,const plot,
+          storm aggregate select coverage]}\stormagg@command
+          table[x=gap_percent,y=instances]{\stormagg@coverage};
+        \edef\stormagg@command{\noexpand\addlegendentry{$\tau=10^{\stormagg@exponent}$;
+          median \noexpand\pgfmathprintnumber[fixed,precision=2,zerofill]{\stormagg@median}\noexpand\,s}}%
+        \stormagg@command
+        \pgfmathtruncatemacro\stormagg@seriesindex{\stormagg@seriesindex+1}%
+      \else
+        \PackageError{storm-pomdp-aggregate}{Unknown coverage threshold `\stormagg@wanted'}%
+          {Select thresholds present in coverage-plot-data.csv.}%
+      \fi
+    }%
+  \end{axis}\end{tikzpicture}\endgroup
+}
+\newcommand{\StormPOMDPTradeoffPlot}[2][]{%
+  \begingroup
+  \begin{tikzpicture}\begin{axis}[
+    xmode=log,ymode=log,storm aggregate axis,title={(b) Representative instances},
+    xmin=.05,xmax=400,ymin=.1,ymax=100,
+    xtick={.1,1,10,100},xticklabels={0.1,1,10,100},
+    ytick={.1,1,10,100},yticklabels={0.1,1,10,100},
+    xlabel={Cut-off runtime (s)},ylabel={Relative bound gap (\%)},
+    legend style={at={(.02,.04)},anchor=south west},#1]
+    \def\stormagg@seriesindex{0}%
+    \edef\stormagg@loop{\noexpand\pgfplotsforeachungrouped\noexpand\stormagg@wanted in {#2}}%
+    \stormagg@loop{%
+      \stormagg@normalise\stormagg@wanted
+      \ifcsname stormagg@gaprow@\the\stormagg@dataset @\stormagg@wanted\endcsname
+        \edef\stormagg@row{\csname stormagg@gaprow@\the\stormagg@dataset @\stormagg@wanted\endcsname}%
+        \stormagg@get\stormagg@gaps{\stormagg@row}{curve_label}\stormagg@label
+        \stormagg@palette
+        \def\stormagg@annotationstyle{}%
+        \ifnum\stormagg@seriesindex=0\relax
+          \def\stormagg@annotationstyle{storm aggregate annotations}%
+        \fi
+        \edef\stormagg@command{\noexpand\addplot[color=\stormagg@colour,mark=\stormagg@mark,
+          mark size=1.2pt,mark options={solid},storm aggregate select instance,
+          \stormagg@annotationstyle]}\stormagg@command
+          table[x=cutoff_seconds,y=gap_percent,meta=annotation_exponent]{\stormagg@gaps};
+        \edef\stormagg@command{\noexpand\addlegendentry{\unexpanded\expandafter{\stormagg@label}}}%
+        \stormagg@command
+        \pgfmathtruncatemacro\stormagg@seriesindex{\stormagg@seriesindex+1}%
+      \else
+        \PackageError{storm-pomdp-aggregate}{Unknown instance `\stormagg@wanted'}%
+          {Select identifiers present in gap-plot-data.csv.}%
+      \fi
+    }%
+  \end{axis}\end{tikzpicture}\endgroup
+}
+\newcommand{\StormPOMDPExplorationPlot}[1][]{%
+  \begingroup
+  \begin{tikzpicture}\begin{axis}[
+    xmode=log,ymode=log,storm aggregate axis,width=5.9cm,height=6cm,
+    title={(a) Exploration capacity},xmin=1e6,xmax=5e7,ymin=2,ymax=500,
+    xtick={1e6,1e7},xticklabels={$10^6$,$10^7$},
+    ytick={10,100},yticklabels={10,100},
+    xlabel={Beliefs explored},ylabel={Total runtime (s)},
+    legend style={at={(.02,.98)},anchor=north west,font=\tiny},#1]
+    \addplot[only marks,color=stormaggblue,mark=o,mark size=2pt,
+      mark options={fill=white},storm aggregate text annotations]
+      table[x=explored_beliefs,y=capacity_partial_seconds,meta=capacity_label]{\stormagg@gaps};
+    \addlegendentry{Cut-off reached}
+    \addplot[only marks,color=stormagggreen,mark=star,mark size=3pt,
+      storm aggregate text annotations]
+      table[x=explored_beliefs,y=capacity_complete_seconds,meta=capacity_label]{\stormagg@gaps};
+    \addlegendentry{Complete exploration}
+    \node[font=\scriptsize,align=right,anchor=south east,fill=white,inner sep=2pt]
+      at (rel axis cs:.98,.03)
+      {\stormagg@million/\stormagg@total\ reach $10^6$\\\stormagg@tenmillion/\stormagg@total\ reach $10^7$};
+  \end{axis}\end{tikzpicture}\endgroup
+}
+\newcommand{\StormPOMDPBoundProgressPlot}[2][]{%
+  \begingroup
+  \edef\stormagg@wanted{#2}\stormagg@normalise\stormagg@wanted
+  \ifcsname stormagg@gaprow@\the\stormagg@dataset @\stormagg@wanted\endcsname
+    \edef\stormagg@row{\csname stormagg@gaprow@\the\stormagg@dataset @\stormagg@wanted\endcsname}%
+    \stormagg@get\stormagg@gaps{\stormagg@row}{curve_label}\stormagg@label
+    \stormagg@get\stormagg@gaps{\stormagg@row}{progress_ymin}\stormagg@ymin
+    \stormagg@get\stormagg@gaps{\stormagg@row}{progress_ymax}\stormagg@ymax
+    \stormagg@get\stormagg@gaps{\stormagg@row}{progress_ylabel}\stormagg@ylabel
+    \begin{tikzpicture}\begin{axis}[
+      xmode=log,storm aggregate axis,width=5.9cm,height=6cm,
+      title={\stormagg@label},xmin=1e3,xmax=5e7,xtickten={3,4,5,6,7},
+      ymin=\stormagg@ymin,ymax=\stormagg@ymax,
+      xlabel={Beliefs explored},ylabel={\stormagg@ylabel},scaled y ticks=false,#1]
+      \addplot[color=stormaggblue,mark=o,mark size=1pt,storm aggregate select instance,
+        storm aggregate text annotations]
+        table[x=explored_beliefs,y=cutoff_bound,meta=progress_label]{\stormagg@gaps};
+    \end{axis}\end{tikzpicture}%
+  \else\PackageError{storm-pomdp-aggregate}{Unknown instance `\stormagg@wanted'}%
+    {Select identifiers present in gap-plot-data.csv.}\fi
+  \endgroup
+}
+\newcommand{\StormPOMDPBoundImprovementPlot}[2][]{%
+  \begingroup
+  \begin{tikzpicture}\begin{axis}[
+    xmode=log,storm aggregate axis,title={(a) Bound improvement},
+    xmin=1e3,xmax=5e7,xtickten={3,4,5,6,7},ymin=0,ymax=100,ytick={0,25,50,75,100},
+    xlabel={Beliefs explored},ylabel={Initial interval closed (\%)},
+    legend style={at={(.02,.98)},anchor=north west},#1]
+    \def\stormagg@seriesindex{0}%
+    \edef\stormagg@loop{\noexpand\pgfplotsforeachungrouped\noexpand\stormagg@wanted in {#2}}%
+    \stormagg@loop{%
+      \stormagg@normalise\stormagg@wanted
+      \ifcsname stormagg@gaprow@\the\stormagg@dataset @\stormagg@wanted\endcsname
+        \edef\stormagg@row{\csname stormagg@gaprow@\the\stormagg@dataset @\stormagg@wanted\endcsname}%
+        \stormagg@get\stormagg@gaps{\stormagg@row}{curve_label}\stormagg@label
+        \stormagg@palette
+        \edef\stormagg@command{\noexpand\addplot[color=\stormagg@colour,mark=\stormagg@mark,
+          mark size=1pt,storm aggregate select instance]}\stormagg@command
+          table[x=explored_beliefs,y=interval_closed_percent]{\stormagg@gaps};
+        \edef\stormagg@command{\noexpand\addlegendentry{\unexpanded\expandafter{\stormagg@label}}}%
+        \stormagg@command
+        \pgfmathtruncatemacro\stormagg@seriesindex{\stormagg@seriesindex+1}%
+      \else\PackageError{storm-pomdp-aggregate}{Unknown instance `\stormagg@wanted'}%
+        {Select identifiers present in gap-plot-data.csv.}\fi
+    }%
+  \end{axis}\end{tikzpicture}\endgroup
+}
+\newcommand{\StormPOMDPHeatmapPlot}[1][]{%
+  \begingroup
+  \pgfmathsetmacro\stormagg@xmax{\stormagg@columns-.5}%
+  \pgfmathsetmacro\stormagg@ymax{\stormagg@total-.5}%
+  \edef\stormagg@command{\noexpand\pgfplotsset{storm aggregate heatmap labels/.style={%
+    /pgfplots/.cd,xtick={\stormagg@xticks},ytick={\stormagg@yticks},
+    xticklabels={\unexpanded\expandafter{\stormagg@xticklabels}},
+    yticklabels={\unexpanded\expandafter{\stormagg@yticklabels}}}}}\stormagg@command
+  \begin{tikzpicture}\begin{axis}[
+    y dir=reverse,storm aggregate axis,storm aggregate heatmap labels,
+    width=17cm,height=11cm,title={Relative bound gap across the cut-off sweep},
+    axis lines=box,grid=none,xmin=-.5,xmax=\stormagg@xmax,ymin=-.5,ymax=\stormagg@ymax,
+    yticklabel style={font=\scriptsize},xlabel={Cut-off threshold $\tau$ (tested configurations)},
+    colormap={stormagggap}{rgb255=(68,1,84);rgb255=(59,82,139);rgb255=(33,145,140);
+      rgb255=(94,201,98);rgb255=(253,231,37)},
+    point meta min=-1,point meta max=2,colorbar,
+    colorbar style={ylabel={Relative bound gap (\%)},ytick={-1,0,1,2},
+      yticklabels={$\leq0.1$,1,10,100},height=8cm},#1]
+    \addplot[matrix plot*,mesh/cols=\stormagg@columns,point meta=explicit,draw=white,line width=.2pt]
+      table[x=threshold_index,y=instance_index,meta=log_gap_percent]{\stormagg@gaps};
+    \pgfplotstableforeachcolumnelement{status_code}\of\stormagg@gaps\as\stormagg@status{%
+      \ifnum\stormagg@status>0\relax
+        \stormagg@get\stormagg@gaps{\pgfplotstablerow}{threshold_index}\stormagg@x
+        \stormagg@get\stormagg@gaps{\pgfplotstablerow}{instance_index}\stormagg@y
+        \pgfmathsetmacro\stormagg@left{\stormagg@x-.5}%
+        \pgfmathsetmacro\stormagg@right{\stormagg@x+.5}%
+        \pgfmathsetmacro\stormagg@bottom{\stormagg@y-.5}%
+        \pgfmathsetmacro\stormagg@top{\stormagg@y+.5}%
+        \ifcase\stormagg@status\or
+          \def\stormagg@fill{black!15}\def\stormagg@symbol{$\times$}%
+        \or\def\stormagg@fill{red!20}\def\stormagg@symbol{T}%
+        \or\def\stormagg@fill{orange!25}\def\stormagg@symbol{M}%
+        \else\def\stormagg@fill{black!30}\def\stormagg@symbol{?}\fi
+        % Axis drawing is deferred: freeze coordinates and symbols for this cell.
+        \edef\stormagg@command{%
+          \noexpand\path[fill=\stormagg@fill,draw=white,line width=.2pt]
+            (axis cs:\stormagg@left,\stormagg@bottom) rectangle (axis cs:\stormagg@right,\stormagg@top);
+          \noexpand\node[font=\noexpand\tiny,inner sep=0pt] at (axis cs:\stormagg@x,\stormagg@y)
+            {\unexpanded\expandafter{\stormagg@symbol}};}\stormagg@command
+      \fi
+    }%
+  \end{axis}\end{tikzpicture}\endgroup
+}
+\newcommand{\stormagg@kind@coverage}[1]{\StormPOMDPCoveragePlot[#1]{\stormagg@defaultcoverage}}
+\newcommand{\stormagg@kind@tradeoff}[1]{\StormPOMDPTradeoffPlot[#1]{\stormagg@defaulttradeoff}}
+\newcommand{\stormagg@kind@heatmap}[1]{\StormPOMDPHeatmapPlot[#1]}
+\newcommand{\stormagg@kind@exploration}[1]{\StormPOMDPExplorationPlot[#1]}
+\newcommand{\stormagg@kind@improvement}[1]{\StormPOMDPBoundImprovementPlot[#1]{\stormagg@defaulttradeoff}}
+\newcommand{\StormPOMDPAggregatePlot}[2][]{%
+  \ifstormagg@loaded
+    \ifcsname stormagg@kind@#2\endcsname
+      \csname stormagg@kind@#2\endcsname{#1}%
+    \else\PackageError{storm-pomdp-aggregate}{Unknown plot `#2'}%
+      {Choose exploration, improvement, heatmap, coverage, or tradeoff.}\fi
+  \else\PackageError{storm-pomdp-aggregate}{Aggregate data have not been loaded}%
+    {Call \string\StormPOMDPLoadAggregateData\space in the preamble first.}\fi
+}
+\makeatother

@@ -1,0 +1,8 @@
+// minimum steps to reach goal
+Rmin=? [ F "goal" ];
+
+// max probability reach goal (use with step bound property)
+"prbmaxgoal": Pmax=? [ F "goal" ];
+
+//max probability to reach goal without stepping into bad
+"prbmax": Pmax=? [!"bad" U "goal"];

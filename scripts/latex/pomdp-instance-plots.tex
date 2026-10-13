@@ -1,0 +1,149 @@
+% Reusable CSV-backed instance plots. Load this file in the document preamble.
+% Call \StormPOMDPLoadData{path/to/cutoff-threshold-plot-data.csv} once.
+\RequirePackage{pgfplots}
+\RequirePackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
+\definecolor{stormpomdpcut}{cmyk}{0.35,0,1,0}
+\definecolor{stormpomdpdiscr}{cmyk}{1,0.5,0,0}
+\pgfplotsset{storm pomdp axis/.style={
+  /pgfplots/.cd,
+  width=\dimexpr\linewidth-14mm\relax,height=4.5cm,
+  axis x line=bottom,axis y line=left,
+  xlabel={Cut-off threshold $\tau$},
+  unbounded coords=jump,filter discard warning=false,
+  grid=major,major grid style={black!15},
+  xticklabel style={font=\scriptsize},yticklabel style={font=\scriptsize},
+  x label style={font=\footnotesize},y label style={font=\footnotesize},
+  legend columns=2,legend cell align=left,
+  legend style={font=\footnotesize,at={(0.5,1)},anchor=south,yshift=4pt},
+  every axis plot/.append style={thick},
+}}
+
+\makeatletter
+\newcount\stormpomdp@dataset
+\newcommand{\StormPOMDPLoadData}[1]{%
+  \advance\stormpomdp@dataset by 1\relax
+  \pgfplotstableread[col sep=comma]{#1}\stormpomdp@data
+  % Index identifiers once; repeated rows have the same instance metadata.
+  \pgfplotstableforeachcolumnelement{instance}\of\stormpomdp@data
+    \as\stormpomdp@candidate{%
+      \expandafter\edef\csname stormpomdp@row@\the\stormpomdp@dataset
+        @\stormpomdp@candidate\endcsname{\pgfplotstablerow}%
+    }%
+}
+\newcommand{\stormpomdp@get}[2]{%
+  \pgfplotstablegetelem{\stormpomdp@row}{#1}\of\stormpomdp@data
+  \let#2\pgfplotsretval
+}
+\pgfplotsset{storm pomdp select/.style={
+  x filter/.code={%
+    % Literal strings work with both the Lua and TeX PGFPlots backends.
+    \getthisrow{instance}\stormpomdp@candidate
+    % Normalise category codes, including underscores in identifiers.
+    \edef\stormpomdp@candidate{\expandafter\detokenize\expandafter{\stormpomdp@candidate}}%
+    \ifx\stormpomdp@candidate\stormpomdp@instance\else
+      \def\pgfmathresult{nan}%
+    \fi
+  },
+}}
+\newcommand{\stormpomdp@references}[1]{%
+  \ifnum\stormpomdp@hasdiscr=1\relax
+    \addplot[color=stormpomdpdiscr,dashed,no marks,storm pomdp select]
+      table[x=threshold,y=discretisation_#1]{\stormpomdp@data};
+    \addlegendentry{Discretisation}
+  \fi
+  \ifnum\stormpomdp@hasmdp=1\relax
+    \addplot[color=black!65,densely dotted,no marks,storm pomdp select]
+      table[x=threshold,y=mdp_#1]{\stormpomdp@data};
+    \addlegendentry{MDP}
+  \fi
+}
+\newcommand{\stormpomdp@failure}[3]{%
+  \stormpomdp@get{has_#1}\stormpomdp@hasstatus
+  \ifnum\stormpomdp@hasstatus=1\relax
+    \addplot[only marks,#2,mark size=2pt,storm pomdp select]
+      table[x=threshold,y=#1_marker]{\stormpomdp@data};
+    \addlegendentry{#3}
+  \fi
+}
+\newcommand{\stormpomdp@plot}[3]{%
+  \begingroup
+  \edef\stormpomdp@instance{#2}%
+  \edef\stormpomdp@instance{\expandafter\detokenize\expandafter{\stormpomdp@instance}}%
+  \ifcsname stormpomdp@row@\the\stormpomdp@dataset @\stormpomdp@instance\endcsname
+    \edef\stormpomdp@row{\csname stormpomdp@row@\the\stormpomdp@dataset
+      @\stormpomdp@instance\endcsname}%
+    \stormpomdp@get{xmin}\stormpomdp@xmin
+    \stormpomdp@get{xmax}\stormpomdp@xmax
+    \stormpomdp@get{x_tick_min}\stormpomdp@xtickmin
+    \stormpomdp@get{x_tick_max}\stormpomdp@xtickmax
+    \stormpomdp@get{has_discretisation}\stormpomdp@hasdiscr
+    \stormpomdp@get{has_mdp}\stormpomdp@hasmdp
+    \edef\stormpomdp@configure{\noexpand\pgfplotsset{storm pomdp limits/.style={%
+      /pgfplots/.cd,
+      xmin=\stormpomdp@xmin,xmax=\stormpomdp@xmax,
+      xtickten={\stormpomdp@xtickmin,...,\stormpomdp@xtickmax}}}}%
+    \stormpomdp@configure
+    \def\stormpomdp@metric{#3}%
+    \def\stormpomdp@runtime{runtime}%
+    \ifx\stormpomdp@metric\stormpomdp@runtime
+      \def\stormpomdp@ymode{log}%
+      \stormpomdp@get{runtime_ymin}\stormpomdp@ymin
+      \stormpomdp@get{runtime_ymax}\stormpomdp@ymax
+      \stormpomdp@get{runtime_tick_min}\stormpomdp@tickmin
+      \stormpomdp@get{runtime_tick_max}\stormpomdp@tickmax
+      \stormpomdp@get{failure_y}\stormpomdp@failurey
+      \stormpomdp@get{has_failures}\stormpomdp@hasfailures
+      \def\stormpomdp@ticks{}%
+      \def\stormpomdp@ticklabels{}%
+      \def\stormpomdp@separator{}%
+      \pgfplotsforeachungrouped \stormpomdp@power in
+        {\stormpomdp@tickmin,...,\stormpomdp@tickmax}{%
+          \edef\stormpomdp@ticks{\stormpomdp@ticks\stormpomdp@separator 1e\stormpomdp@power}%
+          \edef\stormpomdp@ticklabels{\stormpomdp@ticklabels
+            \stormpomdp@separator{$10^{\stormpomdp@power}$}}%
+          \def\stormpomdp@separator{,}%
+        }%
+      \ifnum\stormpomdp@hasfailures=1\relax
+        \edef\stormpomdp@ticks{\stormpomdp@ticks,\stormpomdp@failurey}%
+        \edef\stormpomdp@ticklabels{\stormpomdp@ticklabels,Failure}%
+      \fi
+      \edef\stormpomdp@configure{\noexpand\pgfplotsset{storm pomdp metric/.style={%
+        /pgfplots/.cd,
+        ylabel={Runtime (s)},scaled y ticks=false,
+        ymin=\stormpomdp@ymin,ymax=\stormpomdp@ymax,
+        ytick={\stormpomdp@ticks},yticklabels={\stormpomdp@ticklabels}}}}%
+      \stormpomdp@configure
+    \else
+      \def\stormpomdp@ymode{linear}%
+      \pgfplotsset{storm pomdp metric/.style={%
+        /pgfplots/.cd,
+        ylabel={Value bound},scaled y ticks=false,enlarge y limits=0.08,
+        yticklabel style={font=\scriptsize,/pgf/number format/fixed relative,
+          /pgf/number format/precision=5},
+      }}%
+    \fi
+    \begin{tikzpicture}
+    \begin{axis}[xmode=log,ymode=\stormpomdp@ymode,
+      storm pomdp axis,storm pomdp limits,storm pomdp metric,#1]
+      \addplot[color=stormpomdpcut,mark=o,storm pomdp select]
+        table[x=threshold,y=#3]{\stormpomdp@data};
+      \addlegendentry{Cut-off}
+      \stormpomdp@references{#3}%
+      \ifx\stormpomdp@metric\stormpomdp@runtime
+        \stormpomdp@failure{timeout}{color=red!75!black,mark=x}{Timeout}%
+        \stormpomdp@failure{memout}{color=orange!85!black,mark=triangle}{Memory-out}%
+        \stormpomdp@failure{killed}{color=black!65,mark=x}{Killed}%
+        \stormpomdp@failure{failed}{color=black!45,mark=+}{Failed}%
+      \fi
+    \end{axis}
+    \end{tikzpicture}%
+  \else
+    \PackageError{storm-pomdp-plots}{Unknown instance `\stormpomdp@instance'}%
+      {Load the CSV with \string\StormPOMDPLoadData\space and use an identifier from its instance column.}%
+  \fi
+  \endgroup
+}
+\newcommand{\StormPOMDPValuePlot}[2][]{\stormpomdp@plot{#1}{#2}{value}}
+\newcommand{\StormPOMDPRuntimePlot}[2][]{\stormpomdp@plot{#1}{#2}{runtime}}
+\makeatother
