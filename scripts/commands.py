@@ -158,7 +158,7 @@ def create_invocations():
     time_limit = int(
         ask_user_for_info(
             f"Enter a time limit (in seconds):",
-            "600",
+            "900",
             lambda usr_in: usr_in.isdigit() and int(usr_in) > 0,
         )
     )
