@@ -1,0 +1,58 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism samplerocks.prism --prop samplerocks.props rewmin -const N=16 --timemem --statistics --sound --belief-exploration unfold --size-threshold 90000
+Benchmark:	samplerocks_samplerocks_rewmin_N16
+Configuration:	cut90000
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 22:54:48 2026
+Command line arguments: --prism samplerocks.prism --prop samplerocks.props rewmin -const N=16 --timemem --statistics --sound --belief-exploration unfold --size-threshold 90000
+Current working directory: /tmp/invocation-48cchg5g
+
+Time for model input parsing: 0.002s.
+
+Time for model construction: 0.092s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	11017
+Transitions: 	68388
+Choices: 	54561
+Observations: 	2761
+Reward Models:  cost
+State Labels: 	3 labels
+   * deadlock -> 68 item(s)
+   * init -> 1 item(s)
+   * goal -> 612 item(s)
+Choice Labels: 	10 labels
+   * placement -> 1 item(s)
+   * r1sense -> 7338 item(s)
+   * r2sense -> 7338 item(s)
+   * west -> 9792 item(s)
+   * r2sample -> 18 item(s)
+   * north -> 9792 item(s)
+   * finish -> 612 item(s)
+   * south -> 9792 item(s)
+   * east -> 9792 item(s)
+   * r1sample -> 18 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'Rmin=? [F "goal"]'
+Computing an under-approximation via belief MDP unfolding...
+Belief exploration stopped early: 90002 beliefs discovered, 23600 beliefs explored.
+Constructed belief MDP: 90003 states, 340802 choices, 388000 transitions.
+Time for exploring beliefs: 143ms.
+Time for building the belief MDP: 72ms.
+Time for analyzing the belief MDP: 41ms.
+
+Result: ≤ 44
+Time for POMDP analysis: 0.450s.
+
+Performance statistics:
+  * peak memory usage: 159MB
+  * CPU time: 0.546s
+  * wallclock time: 0.566s
+
+----------------------------------------
+Wallclock time:	0.701
+Return code:	0

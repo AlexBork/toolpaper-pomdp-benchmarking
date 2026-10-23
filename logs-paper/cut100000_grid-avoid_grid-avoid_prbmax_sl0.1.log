@@ -1,0 +1,55 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism 4x4grid-avoid-sl.prism --prop grid-avoid.props prbmax -const sl=0.1 --timemem --statistics --sound --belief-exploration unfold --size-threshold 100000
+Benchmark:	grid-avoid_grid-avoid_prbmax_sl0.1
+Configuration:	cut100000
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 22:02:10 2026
+Command line arguments: --prism 4x4grid-avoid-sl.prism --prop grid-avoid.props prbmax -const sl=0.1 --timemem --statistics --sound --belief-exploration unfold --size-threshold 100000
+Current working directory: /tmp/invocation-k_i1inli
+
+Time for model input parsing: 0.001s.
+
+Time for model construction: 0.008s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	17
+Transitions: 	114
+Choices: 	59
+Observations: 	4
+Reward Models:  none
+State Labels: 	4 labels
+   * deadlock -> 0 item(s)
+   * goal -> 1 item(s)
+   * init -> 1 item(s)
+   * bad -> 1 item(s)
+Choice Labels: 	6 labels
+   * east -> 14 item(s)
+   * west -> 14 item(s)
+   * done -> 1 item(s)
+   * north -> 14 item(s)
+   * south -> 14 item(s)
+   * bad -> 1 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'Pmax=? [(!"bad") U "goal"]'
+Computing an under-approximation via belief MDP unfolding...
+Belief exploration stopped early: 100004 beliefs discovered, 25002 beliefs explored.
+Constructed belief MDP: 100005 states, 175005 choices, 400006 transitions.
+Time for exploring beliefs: 266ms.
+Time for building the belief MDP: 61ms.
+Time for analyzing the belief MDP: 26ms.
+
+Result: ≥ 0.9237564089
+Time for POMDP analysis: 0.378s.
+
+Performance statistics:
+  * peak memory usage: 153MB
+  * CPU time: 0.361s
+  * wallclock time: 0.389s
+
+----------------------------------------
+Wallclock time:	0.480
+Return code:	0

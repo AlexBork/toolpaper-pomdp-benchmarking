@@ -1,0 +1,53 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism 4x4grid-sl.prism --prop grid.props rewmin -const sl=0.3 --timemem --statistics --sound --belief-exploration unfold --size-threshold 10000000
+Benchmark:	grid_grid_rewmin_sl0.3
+Configuration:	cut10000000
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 22:16:08 2026
+Command line arguments: --prism 4x4grid-sl.prism --prop grid.props rewmin -const sl=0.3 --timemem --statistics --sound --belief-exploration unfold --size-threshold 10000000
+Current working directory: /tmp/invocation-d5d0f35c
+
+Time for model input parsing: 0.001s.
+
+Time for model construction: 0.008s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	17
+Transitions: 	122
+Choices: 	62
+Observations: 	3
+Reward Models:  (default)
+State Labels: 	3 labels
+   * deadlock -> 0 item(s)
+   * init -> 1 item(s)
+   * goal -> 1 item(s)
+Choice Labels: 	5 labels
+   * east -> 15 item(s)
+   * west -> 15 item(s)
+   * done -> 1 item(s)
+   * north -> 15 item(s)
+   * south -> 15 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'Rmin=? [F "goal"]'
+Computing an under-approximation via belief MDP unfolding...
+Belief exploration stopped early: 10000002 beliefs discovered, 2928922 beliefs explored.
+Constructed belief MDP: 10000002 states, 40000002 choices, 45857844 transitions.
+Time for exploring beliefs: 30980ms.
+Time for building the belief MDP: 9744ms.
+Time for analyzing the belief MDP: 4120ms.
+
+Result: ≤ 6.336628057
+Time for POMDP analysis: 48.864s.
+
+Performance statistics:
+  * peak memory usage: 11542MB
+  * CPU time: 45.293s
+  * wallclock time: 48.875s
+
+----------------------------------------
+Wallclock time:	49.513
+Return code:	0

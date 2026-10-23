@@ -1,15 +1,23 @@
-import os, sys, subprocess, threading, time, signal, copy
+"""Execute benchmark commands with process-group timeouts and self-contained logs."""
 
-if sys.version_info[0] < 3:
-    sys.exit("You need to run this with Python 3. Try:\npython3 {}".format(" ".join(sys.argv)))
+import os
+from pathlib import Path
+import shlex
+import signal
+import subprocess
+import sys
+import threading
+import time
+
 
 def replace_placeholders_in_cmd_string(cmd_string):
-    bench_home = os.path.realpath(os.path.join(sys.path[0], ".."))
-    return os.path.expanduser(cmd_string).replace("$BENCH_HOME", bench_home)
+    bench_home = Path(__file__).resolve().parent.parent
+    return os.path.expanduser(cmd_string).replace("$BENCH_HOME", str(bench_home))
 
 
-class CommandExecution(object):
-    """ Represents the execution of a single command line argument. """
+class CommandExecution:
+    """Execute one command and kill its process group when the time limit expires."""
+
     def __init__(self):
         self.timelimit = None
         self.return_code = None
@@ -21,47 +29,53 @@ class CommandExecution(object):
         self.timelimit = True
         sys.stdout.write("sending termination request... ")
         sys.stdout.flush()
+        self.kill_process_group()
+
+    def kill_process_group(self):
         try:
-            # setsid makes the child's PID its process-group ID. This also
+            # The new session makes the child's PID its process-group ID. This also
             # kills remaining group members if the original child has exited.
             os.killpg(self.proc.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
 
     def run(self, command_line_str, timelimit):
-        command_line_list = [ replace_placeholders_in_cmd_string(c) for c in command_line_str.split() ]
-        # We need to make sure that the process and all its childs are killed properly. Therefore, work with processgroups
-        # From https://stackoverflow.com/a/4791612
-        # The os.setsid() is passed in the argument preexec_fn so
-        # it's run after the fork() and before  exec() to run the shell.
-        self.proc = subprocess.Popen(command_line_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
-        start_time = time.time()
+        command_line_list = [
+            replace_placeholders_in_cmd_string(c) for c in shlex.split(command_line_str)
+        ]
+        self.proc = subprocess.Popen(
+            command_line_list,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+        )
+        start_time = time.monotonic()
         timer = threading.Timer(timelimit, self.stop)
         self.timelimit = False
         self.output = ""
         timer.start()
         try:
             stdout, stderr = self.proc.communicate()
-        except KeyboardInterrupt:
-            stdout = None
-            stderr = None
-            self.output += "Execution aborted after {:.2f} seconds.\n".format(time.time() - start_time)
-            sys.stdout.write("aborting after {:.2f} seconds ...".format(time.time() - start_time))
-            sys.stdout.flush()
-            # give the user time for another interrupt
-            time.sleep(2)
-        except Exception as e:
-            self.output = self.output + "Error when executing the command:\n{}\n".format(e)
+        except BaseException:
+            self.kill_process_group()
+            self.proc.communicate()
+            raise
         finally:
             timer.cancel()
-            self.wall_time = time.time() - start_time
+            self.wall_time = time.monotonic() - start_time
             self.return_code = self.proc.returncode
         if stdout is not None:
-            self.output = self.output + stdout.decode('utf8')
+            self.output = self.output + stdout.decode("utf8")
         if stderr is not None and len(stderr) > 0:
-            self.output = self.output + "\n" + "#"*30 + "Output to stderr" + "#"*30 + "\n" + stderr.decode('utf8')
-        if self.timelimit and self.wall_time <= timelimit:
-            print("WARN: A timelimit was triggered although the measured time is {} seconds which is still below the time limit of {} seconds".format(self.wall_time, timelimit))
+            self.output = (
+                self.output
+                + "\n"
+                + "#" * 30
+                + "Output to stderr"
+                + "#" * 30
+                + "\n"
+                + stderr.decode("utf8")
+            )
 
 
 def execute_command_line(command_line_str, timelimit):
@@ -77,48 +91,50 @@ def execute_command_line(command_line_str, timelimit):
         return execution.output, execution.wall_time, execution.return_code
 
 
-class Execution(object):
+class Execution:
+    """Run an invocation and write its metadata and output to a log."""
+
     def __init__(self, invocation_json):
         self.invocation = invocation_json
         self.wall_time = None
         self.logs = None
-        self.timeout = None
-        self.error = None
-        self.return_codes = None
-
-    def to_json(self):
-        res = copy.deepcopy(self.invocation)
-        if self.wall_time is not None:
-            res["wallclock-time"] = self.wall_time
-        if self.timeout is not None:
-            res["timeout"] = self.timeout
-        if self.error is not None:
-            res["execution-error"] = self.error
-        if self.return_codes is not None:
-            res["return-codes"] = self.return_codes
-        return res                   
 
     def run(self):
-        self.error = False
-        self.timeout = False
         self.wall_time = 0.0
         self.logs = []
-        self.return_codes = []
         for command in self.invocation["commands"]:
-            log, wall_time, return_code = execute_command_line(command, self.invocation["time-limit"] - self.wall_time)
+            log, wall_time, return_code = execute_command_line(
+                command, self.invocation["time-limit"] - self.wall_time
+            )
             self.wall_time = self.wall_time + wall_time
-            self.logs.append("Command:\t{}\nWallclock time:\t{}\nReturn code:\t{}\nOutput:\n{}\n".format(command, wall_time, return_code, log))
+            self.logs.append(
+                f"Command:\t{command}\n"
+                f"Benchmark:\t{self.invocation['benchmark-id']}\n"
+                f"Configuration:\t{self.invocation['configuration-id']}\n"
+                "Repetition:\t1\n"
+                f"Time limit:\t{self.invocation['time-limit']}\n"
+                f"Tool:\t{self.invocation['tool']}\n"
+                f"Invocation:\t{self.invocation['id']}\n"
+                f"Invocation note:\t{self.invocation.get('invocation-note', '')}\n"
+                f"Wallclock time:\t{wall_time}\n"
+                f"Return code:\t{return_code}\n"
+                f"Output:\n{log}\n"
+            )
             if return_code is None:
-                self.timeout = True
-                self.error = False
-                self.logs[-1] = self.logs[-1] + "\n" + "-"*10 + "\nComputation aborted after {} seconds since the total time limit of {} seconds was exceeded.\n".format(self.wall_time, self.invocation["time-limit"])
-                self.return_codes.append(-9) # process got killed due to timeout
+                self.logs[-1] = (
+                    self.logs[-1]
+                    + "\n"
+                    + "-" * 10
+                    + "\nComputation aborted after {} seconds since the total time limit of {} seconds was exceeded.\n".format(
+                        self.wall_time, self.invocation["time-limit"]
+                    )
+                )
                 break
-            else:
-                self.error = self.error or return_code != 0
-                self.return_codes.append(return_code)
         # save logfile
-        with open(os.path.join(self.invocation["log-dir"], self.invocation["log"]), 'w', encoding="utf-8") as logfile:
+        with open(
+            os.path.join(self.invocation["log-dir"], self.invocation["log"]),
+            "w",
+            encoding="utf-8",
+        ) as logfile:
             hline = "\n" + "#" * 40 + "\n"
             logfile.write(hline.join(self.logs))
-        return self.to_json()

@@ -1,0 +1,56 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism refuel.prism --prop refuel.props prbmax -const N=6 --timemem --statistics --sound --belief-exploration unfold --size-threshold 1000000
+Benchmark:	refuel_refuel_prbmax_N06
+Configuration:	cut1000000
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 22:53:16 2026
+Command line arguments: --prism refuel.prism --prop refuel.props prbmax -const N=6 --timemem --statistics --sound --belief-exploration unfold --size-threshold 1000000
+Current working directory: /tmp/invocation-foz70hkd
+
+Time for model input parsing: 0.002s.
+
+Time for model construction: 0.008s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	208
+Transitions: 	998
+Choices: 	574
+Observations: 	50
+Reward Models:  none
+State Labels: 	4 labels
+   * deadlock -> 3 item(s)
+   * init -> 1 item(s)
+   * notbad -> 159 item(s)
+   * goal -> 4 item(s)
+Choice Labels: 	7 labels
+   * placement -> 1 item(s)
+   * south -> 129 item(s)
+   * refuel -> 12 item(s)
+   * east -> 129 item(s)
+   * north -> 127 item(s)
+   * empty -> 46 item(s)
+   * west -> 127 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'Pmax=? ["notbad" U "goal"]'
+Computing an under-approximation via belief MDP unfolding...
+Belief exploration stopped early: 1000005 beliefs discovered, 905222 beliefs explored.
+Constructed belief MDP: 1000003 states, 1842502 choices, 3261032 transitions.
+Time for exploring beliefs: 2491ms.
+Time for building the belief MDP: 326ms.
+Time for analyzing the belief MDP: 274ms.
+
+Result: ≥ 0.67219
+Time for POMDP analysis: 3.408s.
+
+Performance statistics:
+  * peak memory usage: 849MB
+  * CPU time: 3.217s
+  * wallclock time: 3.420s
+
+----------------------------------------
+Wallclock time:	3.503
+Return code:	0

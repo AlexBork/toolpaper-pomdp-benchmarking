@@ -1,0 +1,56 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism drone.prism --prop drone.props prbmax -const N=5,R=3 --timemem --statistics --sound --belief-exploration unfold --size-threshold 20000000
+Benchmark:	drone_drone_prbmax_N5-R3
+Configuration:	cut20000000
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 22:50:22 2026
+Command line arguments: --prism drone.prism --prop drone.props prbmax -const 'N=5,R=3' --timemem --statistics --sound --belief-exploration unfold --size-threshold 20000000
+Current working directory: /tmp/invocation-4cg3gn9d
+
+Time for model input parsing: 0.001s.
+
+WARN  (FormulaParserGrammar.cpp:344): Identifier `R' coincides with a reserved keyword or operator. Property expressions using the variable or constant 'R' will not be parsed correctly.
+Time for model construction: 0.017s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	2557
+Transitions: 	14005
+Choices: 	6337
+Observations: 	1848
+Reward Models:  none
+State Labels: 	4 labels
+   * deadlock -> 36 item(s)
+   * init -> 1 item(s)
+   * notbad -> 2486 item(s)
+   * goal -> 36 item(s)
+Choice Labels: 	6 labels
+   * placement -> 1 item(s)
+   * adv -> 1260 item(s)
+   * east -> 1260 item(s)
+   * north -> 1260 item(s)
+   * south -> 1260 item(s)
+   * west -> 1260 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'Pmax=? ["notbad" U "goal"]'
+Computing an under-approximation via belief MDP unfolding...
+Belief exploration stopped early: 20000002 beliefs discovered, 9099713 beliefs explored.
+Constructed belief MDP: 19997193 states, 44399567 choices, 132482207 transitions.
+Time for exploring beliefs: 85002ms.
+Time for building the belief MDP: 14449ms.
+Time for analyzing the belief MDP: 25804ms.
+
+Result: ≥ 0.9896016862
+Time for POMDP analysis: 133.785s.
+
+Performance statistics:
+  * peak memory usage: 22214MB
+  * CPU time: 127.990s
+  * wallclock time: 133.807s
+
+----------------------------------------
+Wallclock time:	134.698
+Return code:	0

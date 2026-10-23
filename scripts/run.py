@@ -1,54 +1,87 @@
-import json, traceback, sys, os
-from collections import OrderedDict
-from time import sleep
+"""Create invocation files interactively or execute a saved experiment."""
 
-from executing import Execution
+import argparse
+import json
+from pathlib import Path
+import sys
+import traceback
+
 from commands import create_invocations
+from executing import Execution
 
-    
-if __name__ == "__main__":
-    print("Storm benchmarking tool.")
-    print("This script selects and executes benchmarks.")
-    print("Usages:")
-    print("python3 {}                 Creates an invocations file.".format(sys.argv[0]))
-    print("python3 {} <filename>      Executes benchmarks from a previously created invocations file located at <filename>.".format(sys.argv[0]))
-    print("python3 {} <filename> <i>  Executes the <i>th invocation (0 based) from a previously created invocations file located at <filename>.".format(sys.argv[0]))
-    print("")
-    if len(sys.argv) == 2 and sys.argv[1] in ["-h", "-help", "--help"]:
-        sys.exit(0)
-    if len(sys.argv) > 3:
-        exit(1)
-        
-    if len(sys.argv) == 1:
-        input("No invocations file loaded. Press Return to create one now or CTRL+C to abort.")
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "filename",
+        nargs="?",
+        help="Invocation JSON file; omit to create one interactively",
+    )
+    parser.add_argument(
+        "index",
+        nargs="?",
+        type=int,
+        help="Execute only this invocation (zero-based index)",
+    )
+    parser.add_argument("-help", action="help", help=argparse.SUPPRESS)
+    options = parser.parse_args()
+
+    if options.filename is None:
+        input("Press Return to create an invocation file or Ctrl+C to abort.")
         create_invocations()
+        return 0
+
+    try:
+        with open(options.filename, encoding="utf-8-sig") as json_file:
+            invocations = json.load(json_file)
+    except (OSError, ValueError) as error:
+        parser.error(str(error))
+    if not isinstance(invocations, list):
+        parser.error("Expected an invocation JSON array")
+
+    print(f"Loaded {len(invocations)} invocations.")
+    if options.index is None:
+        indices = range(len(invocations))
+    elif 0 <= options.index < len(invocations):
+        indices = [options.index]
     else:
-        assert os.path.isfile(sys.argv[1]), f"Invocations file {sys.argv[1]} does not exist."
-        with open(sys.argv[1], 'r', encoding='utf-8-sig') as json_file:
-            invocations = json.load(json_file, object_pairs_hook=OrderedDict)
-        print(f"Loaded {len(invocations)} invocations.")
-        if len(sys.argv) == 3:
-            assert sys.argv[2].isdigit(), f"Expected a non-negative number for second argument but got '{sys.argv[2]}' instead."
-            selected_index = int(sys.argv[2])
-            assert selected_index < len(invocations), f"Second argument is out of range: got {selected_index} but there are {len(invocations)} invocations."
-            invocation_indices = [selected_index]
+        parser.error(
+            f"Index {options.index} is out of range for {len(invocations)} invocations"
+        )
+
+    exit_code = 0
+    for index in indices:
+        invocation = invocations[index]
+        print(
+            f"Executing invocation #{index}: {invocation['id']}... ", end="", flush=True
+        )
+        try:
+            Path(invocation["log-dir"]).mkdir(parents=True, exist_ok=True)
+            execution = Execution(invocation)
+            execution.run()
+            # A rerun replaces any legacy JSON record for this log as well.
+            legacy_json = Path(invocation["log-dir"]) / Path(
+                invocation["log"]
+            ).with_suffix(".json")
+            legacy_json.unlink(missing_ok=True)
+        except KeyboardInterrupt:
+            print(f"\nInterrupted invocation #{index}: {invocation['id']}")
+            return 130
+        except Exception:
+            print(
+                f"\nERROR while processing invocation #{index}: {invocation['id']}",
+                flush=True,
+            )
+            traceback.print_exc()
+            exit_code = 1
         else:
-            invocation_indices = range(len(invocations))
-        for i in invocation_indices:
-            invocation = invocations[i]
-            sys.stdout.write(f"Executing invocation #{i}: {invocation['id']}... ")
-            sys.stdout.flush()
-            try:
-                execution = Execution(invocation)
-                execution_result = execution.run()
-                json_file_path = os.path.join(invocation["log-dir"], os.path.splitext(invocation["log"])[0] + ".json")
-                with open(json_file_path, 'w') as json_file:
-                    json.dump(execution_result, json_file, ensure_ascii=False, indent='\t')
-            except KeyboardInterrupt as e:
-                print("\nInterrupt while processing invocation #{}: {}\n".format(i, invocation['id']))
-                print("Continuing in 5 seconds")
-                sleep(5)
-            except Exception:
-                print("\nERROR while processing invocation #{}: {}".format(i, invocation['id']))
-                traceback.print_exc()
             print(f"done ({execution.wall_time:.2f}s).")
+    return exit_code
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("\nInterrupted.")
+        sys.exit(130)

@@ -13,3 +13,4 @@ data/*
 experiments-*/
 experiments/
 olddata/
+!logs-paper

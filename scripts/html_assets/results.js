@@ -14,13 +14,12 @@ function highlight() {
       cell.classList.remove("best");
       return cell.dataset.status === "successful" && !cell.hidden;
     });
-    // The fully observable MDP is an over-approximation of the POMDP,
-    // even when its own result is exact. Compare its value with discretisation.
+    // Compare under- and over-approximation methods separately.
     // Display choices affect sorting, but not which POMDP bound is best.
-    for (const families of [["cutoff"], ["discretisation", "MDP"]]) {
-      const group = candidates.filter(cell => families.includes(cell.dataset.family)
+    for (const family of ["cutoff", "discretisation"]) {
+      const group = candidates.filter(cell => cell.dataset.family === family
         && cell.dataset.quality !== "" && Number.isFinite(Number(cell.dataset.quality)));
-      const under = families[0] === "cutoff";
+      const under = family === "cutoff";
       const maximise = (row.dataset.direction === "max") === under;
       const values = group.map(cell => Number(cell.dataset.quality));
       const best = maximise ? Math.max(...values) : Math.min(...values);

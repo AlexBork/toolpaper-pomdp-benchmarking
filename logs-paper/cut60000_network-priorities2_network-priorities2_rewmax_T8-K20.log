@@ -1,0 +1,53 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism network-priorities2.prism --prop network-priorities.props rewmax -const T=8,K=20 --timemem --statistics --sound --belief-exploration unfold --size-threshold 60000
+Benchmark:	network-priorities2_network-priorities2_rewmax_T8-K20
+Configuration:	cut60000
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 22:01:05 2026
+Command line arguments: --prism network-priorities2.prism --prop network-priorities.props rewmax -const 'T=8,K=20' --timemem --statistics --sound --belief-exploration unfold --size-threshold 60000
+Current working directory: /tmp/invocation-gwcz67r4
+
+Time for model input parsing: 0.002s.
+
+WARN  (FormulaParserGrammar.cpp:347): Identifier `T' coincides with a reserved keyword or operator. Property expressions using the variable or constant 'T' might not be parsed correctly.
+Time for model construction: 0.086s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	19373
+Transitions: 	102420
+Choices: 	34157
+Observations: 	4909
+Reward Models:  priority
+State Labels: 	3 labels
+   * deadlock -> 0 item(s)
+   * init -> 1 item(s)
+   * (((sched = 0) & (t = (8 - 1))) & (k = (20 - 1))) -> 64 item(s)
+Choice Labels: 	4 labels
+   * slot -> 9773 item(s)
+   * idle -> 9536 item(s)
+   * send1 -> 7392 item(s)
+   * send2 -> 7392 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'R{"priority"}max=? [F (((sched = 0) & (t = (8 - 1))) & (k = (20 - 1)))]'
+Computing an under-approximation via belief MDP unfolding...
+Belief exploration stopped early: 60002 beliefs discovered, 54239 beliefs explored.
+Constructed belief MDP: 60003 states, 145031 choices, 204265 transitions.
+Time for exploring beliefs: 95ms.
+Time for building the belief MDP: 18ms.
+Time for analyzing the belief MDP: 20ms.
+
+Result: ≥ 536.5453427
+Time for POMDP analysis: 0.252s.
+
+Performance statistics:
+  * peak memory usage: 124MB
+  * CPU time: 0.322s
+  * wallclock time: 0.350s
+
+----------------------------------------
+Wallclock time:	0.407
+Return code:	0

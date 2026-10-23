@@ -1,0 +1,54 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism network3.prism --prop network.props rewmin -const T=8,K=20 --timemem --statistics --sound --belief-exploration discretize --resolution 4 --triangulationmode static
+Benchmark:	network3_network3_rewmin_T8-K20
+Configuration:	discr004s
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 22:54:35 2026
+Command line arguments: --prism network3.prism --prop network.props rewmin -const 'T=8,K=20' --timemem --statistics --sound --belief-exploration discretize --resolution 4 --triangulationmode static
+Current working directory: /tmp/invocation-ntktyizw
+
+Time for model input parsing: 0.002s.
+
+WARN  (FormulaParserGrammar.cpp:347): Identifier `T' coincides with a reserved keyword or operator. Property expressions using the variable or constant 'T' might not be parsed correctly.
+Time for model construction: 0.081s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	17253
+Transitions: 	93128
+Choices: 	30597
+Observations: 	2205
+Reward Models:  dropped_packets
+State Labels: 	3 labels
+   * deadlock -> 0 item(s)
+   * init -> 1 item(s)
+   * (((sched = 0) & (t = (8 - 1))) & (k = (20 - 1))) -> 64 item(s)
+Choice Labels: 	5 labels
+   * slot -> 8933 item(s)
+   * idle -> 8256 item(s)
+   * send1 -> 4448 item(s)
+   * send3 -> 4448 item(s)
+   * send2 -> 4448 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'R{"dropped_packets"}min=? [F (((sched = 0) & (t = (8 - 1))) & (k = (20 - 1)))]'
+Computing an over-approximation via belief MDP discretization...
+Belief exploration completed: 199122 beliefs discovered, 198106 beliefs explored.
+Constructed belief MDP: 198107 states, 306700 choices, 1225006 transitions.
+Time for exploring beliefs: 615ms.
+Time for building the belief MDP: 63ms.
+Time for analyzing the belief MDP: 137ms.
+
+Result: ≥ 5.114396068
+Time for POMDP analysis: 0.967s.
+
+Performance statistics:
+  * peak memory usage: 272MB
+  * CPU time: 1.000s
+  * wallclock time: 1.060s
+
+----------------------------------------
+Wallclock time:	1.124
+Return code:	0

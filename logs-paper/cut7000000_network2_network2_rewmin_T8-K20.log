@@ -1,0 +1,53 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism network2.prism --prop network.props rewmin -const T=8,K=20 --timemem --statistics --sound --belief-exploration unfold --size-threshold 7000000
+Benchmark:	network2_network2_rewmin_T8-K20
+Configuration:	cut7000000
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 22:32:39 2026
+Command line arguments: --prism network2.prism --prop network.props rewmin -const 'T=8,K=20' --timemem --statistics --sound --belief-exploration unfold --size-threshold 7000000
+Current working directory: /tmp/invocation-v77do3sx
+
+Time for model input parsing: 0.001s.
+
+WARN  (FormulaParserGrammar.cpp:347): Identifier `T' coincides with a reserved keyword or operator. Property expressions using the variable or constant 'T' might not be parsed correctly.
+Time for model construction: 0.021s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	4589
+Transitions: 	14020
+Choices: 	6973
+Observations: 	1173
+Reward Models:  dropped_packets
+State Labels: 	3 labels
+   * deadlock -> 0 item(s)
+   * init -> 1 item(s)
+   * (((sched = 0) & (t = (8 - 1))) & (k = (20 - 1))) -> 16 item(s)
+Choice Labels: 	4 labels
+   * slot -> 2349 item(s)
+   * idle -> 2224 item(s)
+   * send1 -> 1192 item(s)
+   * send2 -> 1192 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'R{"dropped_packets"}min=? [F (((sched = 0) & (t = (8 - 1))) & (k = (20 - 1)))]'
+Computing an under-approximation via belief MDP unfolding...
+Belief exploration completed: 1257256 beliefs discovered, 1252151 beliefs explored.
+Constructed belief MDP: 1252152 states, 2391782 choices, 3522808 transitions.
+Time for exploring beliefs: 1979ms.
+Time for building the belief MDP: 210ms.
+Time for analyzing the belief MDP: 727ms.
+
+Result: 3.198957741
+Time for POMDP analysis: 3.211s.
+
+Performance statistics:
+  * peak memory usage: 1129MB
+  * CPU time: 3.004s
+  * wallclock time: 3.236s
+
+----------------------------------------
+Wallclock time:	3.315
+Return code:	0

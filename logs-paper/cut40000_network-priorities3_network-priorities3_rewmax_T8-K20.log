@@ -1,0 +1,54 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism network-priorities3.prism --prop network-priorities.props rewmax -const T=8,K=20 --timemem --statistics --sound --belief-exploration unfold --size-threshold 40000
+Benchmark:	network-priorities3_network-priorities3_rewmax_T8-K20
+Configuration:	cut40000
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 22:16:58 2026
+Command line arguments: --prism network-priorities3.prism --prop network-priorities.props rewmax -const 'T=8,K=20' --timemem --statistics --sound --belief-exploration unfold --size-threshold 40000
+Current working directory: /tmp/invocation-wza3o7rb
+
+Time for model input parsing: 0.003s.
+
+WARN  (FormulaParserGrammar.cpp:347): Identifier `T' coincides with a reserved keyword or operator. Property expressions using the variable or constant 'T' might not be parsed correctly.
+Time for model construction: 1.494s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	150837
+Transitions: 	2882296
+Choices: 	322485
+Observations: 	19173
+Reward Models:  priority
+State Labels: 	3 labels
+   * deadlock -> 0 item(s)
+   * init -> 1 item(s)
+   * (((sched = 0) & (t = (8 - 1))) & (k = (20 - 1))) -> 512 item(s)
+Choice Labels: 	5 labels
+   * slot -> 76597 item(s)
+   * idle -> 73728 item(s)
+   * send1 -> 57216 item(s)
+   * send3 -> 57216 item(s)
+   * send2 -> 57216 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'R{"priority"}max=? [F (((sched = 0) & (t = (8 - 1))) & (k = (20 - 1)))]'
+Computing an under-approximation via belief MDP unfolding...
+Belief exploration stopped early: 40001 beliefs discovered, 27326 beliefs explored.
+Constructed belief MDP: 40002 states, 148353 choices, 180680 transitions.
+Time for exploring beliefs: 82ms.
+Time for building the belief MDP: 20ms.
+Time for analyzing the belief MDP: 12ms.
+
+Result: ≥ 767.1857938
+Time for POMDP analysis: 1.946s.
+
+Performance statistics:
+  * peak memory usage: 479MB
+  * CPU time: 3.369s
+  * wallclock time: 3.541s
+
+----------------------------------------
+Wallclock time:	3.602
+Return code:	0

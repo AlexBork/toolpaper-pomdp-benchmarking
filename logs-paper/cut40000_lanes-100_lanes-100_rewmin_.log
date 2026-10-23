@@ -1,0 +1,60 @@
+Command:	/opt/storm2-experiments/pomdp/bin/storm-pomdp --prism lanes-100.prism --prop lanes100.props rewmin --timemem --statistics --sound --belief-exploration unfold --size-threshold 40000
+Benchmark:	lanes-100_lanes-100_rewmin_
+Configuration:	cut40000
+Repetition:	1
+Time limit:	900
+Output:
+Storm-POMDP 1.14.0 (dev)
+
+Date: Wed Oct 14 23:03:24 2026
+Command line arguments: --prism lanes-100.prism --prop lanes100.props rewmin --timemem --statistics --sound --belief-exploration unfold --size-threshold 40000
+Current working directory: /tmp/invocation-0xjgmb9x
+
+Time for model input parsing: 0.002s.
+
+Time for model construction: 0.019s.
+
+-------------------------------------------------------------- 
+Model type: 	POMDP (sparse)
+States: 	2741
+Transitions: 	8122
+Choices: 	5289
+Observations: 	11
+Reward Models:  steps
+State Labels: 	3 labels
+   * deadlock -> 0 item(s)
+   * init -> 1 item(s)
+   * (z = 5) -> 2 item(s)
+Choice Labels: 	12 labels
+   * in -> 102 item(s)
+   * A -> 820 item(s)
+   * I -> 808 item(s)
+   * l -> 100 item(s)
+   * r -> 100 item(s)
+   * C -> 12 item(s)
+   * B -> 820 item(s)
+   * E -> 808 item(s)
+   * F -> 808 item(s)
+   * c -> 2 item(s)
+   * J -> 808 item(s)
+   * reset -> 101 item(s)
+-------------------------------------------------------------- 
+Analyzing property 'R{"steps"}min=? [F (z = 5)]'
+Computing an under-approximation via belief MDP unfolding...
+Belief exploration stopped early: 40001 beliefs discovered, 22945 beliefs explored.
+Constructed belief MDP: 40000 states, 130966 choices, 152031 transitions.
+Time for exploring beliefs: 324ms.
+Time for building the belief MDP: 35ms.
+Time for analyzing the belief MDP: 25ms.
+
+Result: ≤ 21611.76447
+Time for POMDP analysis: 0.518s.
+
+Performance statistics:
+  * peak memory usage: 122MB
+  * CPU time: 0.525s
+  * wallclock time: 0.544s
+
+----------------------------------------
+Wallclock time:	0.605
+Return code:	0
